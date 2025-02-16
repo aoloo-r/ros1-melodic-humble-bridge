@@ -25,6 +25,20 @@ For example, in our setup:
 
 1. **Clone the Repository:**
    ```bash
-   git clone <your-repository-url>
-   cd <repository-directory>
+   git clone https://github.com/aoloo-r/ros1-melodic-humble-bridge.git
+   cd ros1-melodic-humble-bridge
+
+2. **Build the Docker Image:**
+   ```bash
+   docker build -t ros-humble-ros1-bridge-builder .
+   
+Note: This build may take a while as it compiles parts of ROS1 from source and builds the bridge.  
+
+## Part 2: Extract the Bridge Overlay
+After the image is built, run the following command to extract the precompiled bridge overlay tarball:
+
+```bash
+docker run --rm ros-humble-ros1-bridge-builder | tar xzvf -
+
+This creates a directory named ros-humble-ros1-bridge in your current folder.
 
