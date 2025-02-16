@@ -1,13 +1,14 @@
+
 ## Overview
 
 - **Docker Image:**  
-  The image is based on Ubuntu 22.04 and installs ROS2 Humble (desktop) via apt. It force-installs a partial ROS1 environment (using Ubuntu's `ros-desktop-dev` packages) to emulate a Melodic environment. The image builds the `ros1_bridge` (for bridging ROS1 Melodic ↔ ROS2 Humble) using colcon.
+  The image is based on Ubuntu 22.04 and installs ROS2 Humble (desktop) via apt. It force-installs a partial ROS1 environment (using Ubuntu's `ros-desktop-dev` packages) to emulate a Melodic environment. The image then builds the `ros1_bridge` (bridging ROS1 Melodic ↔ ROS2 Humble) using colcon.
 
 - **Bridge Extraction:**  
-  After building the image, a precompiled tarball containing the bridge overlay is generated. This overlay is then extracted locally on your desktop and sourced to run the dynamic bridge.
+  After building the image, a precompiled tarball containing the bridge overlay is generated. This overlay is extracted locally on your desktop and sourced to run the dynamic bridge.
 
 - **Usage:**  
-  The desktop runs the dynamic bridge node, which connects to the ROS1 master on the robot over the network. ROS1 topics (e.g., `/rosout` and `/chatter` from a test talker) are then bridged into the ROS2 environment.
+  The dynamic bridge node runs on your desktop and connects to a ROS1 master (to be configured externally) so that ROS1 topics are bridged into the ROS2 environment.
 
 ---
 
@@ -16,13 +17,6 @@
 - **Desktop:**  
   - Ubuntu 22.04 with ROS2 Humble installed  
   - Docker installed
-
-- **Robot:**  
-  - Ubuntu 18.04 with ROS1 Melodic installed  
-  - Network connectivity between robot and desktop on the same subnet  
-  - Example IP configuration:  
-    - **Robot IP:** 10.66.171.191  
-    - **Desktop IP:** 10.66.171.108
 
 ---
 
@@ -41,29 +35,36 @@
    docker build -t ros-humble-ros1-bridge-builder .
    ```
 
-   *Note: This build may take a while as it compiles parts of ROS1 from source and builds the bridge.*
+   *Note: The build process may take a while as it compiles parts of ROS1 from source and builds the bridge.*
 
 ---
 
 ## Part 2: Extract the Bridge Overlay
 
-After the image is built, run the following command to extract the precompiled bridge overlay tarball:
+After the image is built, extract the precompiled bridge overlay tarball by running:
 
 ```bash
 docker run --rm ros-humble-ros1-bridge-builder | tar xzvf -
 ```
 
-This creates a directory named `ros-humble-ros1-bridge` in your current folder.
+This will create a directory named `ros-humble-ros1-bridge` in your current folder.
 
 ---
 
-## Part 3: Running the Bridge on the Desktop
+## Part 3: Running the Bridge on Your Desktop
 
 ### Desktop Setup
 
-1. **Set Environment Variables on the Desktop:**
+1. **Set Environment Variables:**
 
-   Open a terminal on your desktop and run:
+   Open a terminal on your desktop and set the following environment variables (adjust the IP addresses as needed):
+
+   ```bash
+   export ROS_MASTER_URI=http://<ROS1_MASTER_IP>:11311
+   export ROS_IP=<YOUR_DESKTOP_IP>
+   ```
+
+   For example, if your desktop IP is `10.66.171.108` and the ROS1 master is reachable at `10.66.171.191`, then:
 
    ```bash
    export ROS_MASTER_URI=http://10.66.171.191:11311
@@ -80,7 +81,7 @@ This creates a directory named `ros-humble-ros1-bridge` in your current folder.
 
 3. **Launch the Dynamic Bridge:**
 
-   To avoid node name conflicts and force all topics to be bridged, run:
+   To avoid node name conflicts and force bridging of all topics, run:
 
    ```bash
    ros2 run ros1_bridge dynamic_bridge --ros-args -r __node:=dynamic_bridge_desktop -- --bridge-all-topics
@@ -95,12 +96,11 @@ This creates a directory named `ros-humble-ros1-bridge` in your current folder.
    ros2 topic list
    ```
 
-   You should see topics like `/rosout`, `/parameter_events`, and (if a publisher is active) `/chatter`.
-
-   To view messages on `/chatter`:
+   You should see topics like `/rosout`, `/parameter_events`, etc. To view messages on a topic (e.g., `/chatter`), run:
 
    ```bash
    ros2 topic echo /chatter
    ```
+
 ---
 
